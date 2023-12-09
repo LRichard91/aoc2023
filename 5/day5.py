@@ -16,6 +16,10 @@ def parse_input(filename, debug=False):
         pprint(input)
         print('')
 
+    # Parsed input is a dictionary containing lists of tuples like this:
+    # {'seeds': [...], 'sts': [(t, f, i), ...], stf:[(t, f, i), ...], ...}
+    parsed_input = {}
+    
     return
 
 
