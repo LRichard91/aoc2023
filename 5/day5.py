@@ -1,12 +1,7 @@
 #!/usr/bin/env python
 
-from multiprocessing import Pool
 from pprint import pprint
 import sys
-
-
-PARSED_INPUT = {}
-DEBUG = False
 
 
 def parse_input(filename, debug=False):
@@ -143,6 +138,7 @@ def parse_input(filename, debug=False):
 
 def trace_path(seed_number, parsed_input, debug=False):
     '''Trace the path for the current seed'''
+    # IMPORTANT!!! : Only use for Part 1!
     location = 0
     curr_map = parsed_input['seed-to-soil']
     fr = seed_number
@@ -207,14 +203,6 @@ def trace_path(seed_number, parsed_input, debug=False):
     return location
 
 
-def range_generator(start, interval):
-    '''Generator function for the range of seeds'''
-    seed = start
-    while seed < start + interval:
-        yield seed
-        seed += 1
-
-
 def part_1(parsed_input, debug=False):
     '''Get the solution for Part 1'''
     locations = []
@@ -229,63 +217,9 @@ def part_1(parsed_input, debug=False):
     return min(locations)
 
 
-def worker(seed_nr):
-    '''Worker function for multiprocessing'''
-    s = trace_path(seed_nr, PARSED_INPUT, DEBUG)
-    return s
-    
-
 def part_2(parsed_input, debug=False):
     '''Get the solution for Part 2'''
-    global PARSED_INPUT
-    global DEBUG
-    PARSED_INPUT = parsed_input
-    DEBUG = debug
-    # Convert the seeds part in parsed input
-    lst = []
-    num, interval = 0, 0
-    for idx, item in enumerate(parsed_input['seeds']):
-        if idx % 2 == 0:
-            num = item
-        elif idx % 2 == 1:
-            interval = item
-            lst.append((num, interval))
-            num = 0
-            interval = 0
-    if debug:
-        print('The seeds input for Part 2 is:', lst)
-        print('')
-
-    parsed_input['seeds'] = lst
-    if debug:
-        print('The parsed input for Part 2 is:')
-        pprint(parsed_input)
-        print('')
-
-    # Run trace_path on generated seed range
-    min_locations = []
-    # for item in parsed_input['seeds']:
-    #     for seed in range_generator(item[0], item[1]):
-    #         print(f'Processing seed #{seed}')
-    #         locations.append(trace_path(seed, parsed_input, debug))
-    with Pool(processes=4) as pool:
-        for item in parsed_input['seeds']:
-            print(f'Processing seed range {item}')
-            print('')
-            temp_loc = []
-            temp_loc.append([x for x in pool.imap(worker, range_generator(item[0], item[1]), 1000)])
-            min_locations.append(min([item for row in temp_loc for item in row]))
-            if debug:
-                print(f'The locations for seed range {item} are:')
-                pprint(temp_loc)
-                print('')
-
-    if debug:
-        print('The minimum locations for all seed ranges in Part 2 are:')
-        pprint(min_locations)
-        print('')
-
-    return min(min_locations) 
+    return 0
 
 
 def main():
