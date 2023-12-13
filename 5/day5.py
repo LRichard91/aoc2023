@@ -217,7 +217,82 @@ def part_1(parsed_input, debug=False):
     return min(locations)
 
 
-def part_2(parsed_input, debug=False):
+def map_ranges(parsed_input, debug=False):
+    '''Map the seed ranges to location ranges'''
+    # Get the seed ranges - list of tuples with start and end of range (inclusive)
+    seed_ranges = []
+    for index, item in enumerate(parsed_input['seeds']):
+        if index % 2 == 0:
+            s = item
+        else:
+            i = item
+            seed_ranges.append((s, s+i-1))
+    if debug:
+        print('The seed ranges for Part 2:')
+        pprint(seed_ranges)
+        print('')
+
+    # Massage parsed_input so I can work with start-end tuples
+    seed_to_soil = []
+    soil_to_fert = []
+    fert_to_water = []
+    water_to_light = []
+    light_to_temp = []
+    temp_to_humid = []
+    humid_to_loc = []
+
+    for item in parsed_input:
+        if item == 'seeds':
+            continue
+        for idx, _ in enumerate(parsed_input[item]):
+            for i, n in enumerate(parsed_input[item][idx]):
+                if i == 0:
+                    dest_start = n
+                elif i == 1:
+                    source_start = n
+                else:
+                    delta = n - 1
+                    tup = (source_start, source_start+delta, dest_start, dest_start+delta)
+                    match item:
+                        case 'seed-to-soil':
+                            seed_to_soil.append(tup)
+                        case 'soil-to-fertilizer':
+                            soil_to_fert.append(tup)
+                        case 'fertilizer-to-water':
+                            fert_to_water.append(tup)
+                        case 'water-to-light':
+                            water_to_light.append(tup)
+                        case 'light-to-temp':
+                            light_to_temp.append(tup)
+                        case 'temp-to-hum':
+                            temp_to_humid.append(tup)
+                        case 'hum-to-loc':
+                            humid_to_loc.append(tup)
+    if debug:
+        print('The remapped ranges:\n')
+        print('Seed to soil:')
+        pprint(seed_to_soil)
+        print('Soil to fertilizer:')
+        pprint(soil_to_fert)
+        print('Fertilizer to water:')
+        pprint(fert_to_water)
+        print('Water to light:')
+        pprint(water_to_light)
+        print('Light to temperature:')
+        pprint(light_to_temp)
+        print('Temperature to humidity:')
+        pprint(temp_to_humid)
+        print('Humiditiy to location:')
+        pprint(humid_to_loc)
+        print('')
+
+
+    # Map seed ranges to location ranges
+            
+    return 0
+
+
+def part_2(mapped_ranges, debug=False):
     '''Get the solution for Part 2'''
     return 0
 
@@ -244,13 +319,27 @@ def main():
     # Parse the input file
     parsed_input = parse_input(filename, debug)
 
-    # Get the solutions and print them out
+    # Get the solution for Part 1
     part_1_solution = part_1(parsed_input, debug)
-    part_2_solution = part_2(parsed_input, debug)
+
+    if debug:
+        print('===================================')
+        print('              Part 2               ')
+        print('===================================')
+        print('')
+
+    # Get the mapped ranges for Part 2 solution
+    mapped_ranges = map_ranges(parsed_input, debug)
+
+    # Get the solution for Part 2
+    part_2_solution = part_2(mapped_ranges, debug)
+
+    # Print out solutions
     print('')
     print('The solution for Part 1 is:', part_1_solution)
     print('')
     print('The solution for Part 2 is:', part_2_solution)
+    print('')
     sys.exit(0)
 
 
