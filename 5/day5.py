@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 
+from multiprocessing import Pool
 from pprint import pprint
 import sys
+
+
+PARSED_INPUT = {}
+DEBUG = False
 
 
 def parse_input(filename, debug=False):
@@ -133,17 +138,154 @@ def parse_input(filename, debug=False):
         print('The parsed input:')
         pprint(parsed_input)
         print('')
-    return
+    return parsed_input
 
 
-def part_1():
+def trace_path(seed_number, parsed_input, debug=False):
+    '''Trace the path for the current seed'''
+    location = 0
+    curr_map = parsed_input['seed-to-soil']
+    fr = seed_number
+    to = seed_number
+    for item in curr_map:
+        if fr >= item[1] and fr < item[1] + item[2]:
+            to = item[0] + (fr - item[1])
+    if debug:
+        print(f"Seed #{fr} goes to soil #{to}")
+    
+    curr_map = parsed_input['soil-to-fertilizer']
+    fr = to
+    for item in curr_map:
+        if fr >= item[1] and fr < item[1] + item[2]:
+            to = item[0] + (fr - item[1])
+    if debug:
+        print(f"Soil #{fr} goes to fertilizer #{to}")
+    
+    curr_map = parsed_input['fertilizer-to-water']
+    fr = to
+    for item in curr_map:
+        if fr >= item[1] and fr < item[1] + item[2]:
+            to = item[0] + (fr - item[1])
+    if debug:
+        print(f"Fertilizer #{fr} goes to water #{to}")
+
+    curr_map = parsed_input['water-to-light']
+    fr = to
+    for item in curr_map:
+        if fr >= item[1] and fr < item[1] + item[2]:
+            to = item[0] + (fr - item[1])
+    if debug:
+        print(f"Water #{fr} goes to light #{to}")
+
+    curr_map = parsed_input['light-to-temp']
+    fr = to
+    for item in curr_map:
+        if fr >= item[1] and fr < item[1] + item[2]:
+            to = item[0] + (fr - item[1])
+    if debug:
+        print(f"Light #{fr} goes to temperature #{to}")
+
+    curr_map = parsed_input['temp-to-hum']
+    fr = to
+    for item in curr_map:
+        if fr >= item[1] and fr < item[1] + item[2]:
+            to = item[0] + (fr - item[1])
+    if debug:
+        print(f"Temperature #{fr} goes to humidity #{to}")
+
+    curr_map = parsed_input['hum-to-loc']
+    fr = to
+    for item in curr_map:
+        if fr >= item[1] and fr < item[1] + item[2]:
+            to = item[0] + (fr - item[1])
+    if debug:
+        print(f"Humidity #{fr} goes to location #{to}")
+        print('')
+
+    location = to
+
+    return location
+
+
+def range_generator(start, interval):
+    '''Generator function for the range of seeds'''
+    seed = start
+    while seed < start + interval:
+        yield seed
+        seed += 1
+
+
+def part_1(parsed_input, debug=False):
     '''Get the solution for Part 1'''
-    return 0
+    locations = []
+    for item in parsed_input['seeds']:
+        locations.append(trace_path(item, parsed_input, debug))
+
+    if debug:
+        print('The locations for Part 1 are:')
+        pprint(locations)
+        print('')
+
+    return min(locations)
 
 
-def part_2():
+def worker(seed_nr):
+    '''Worker function for multiprocessing'''
+    s = trace_path(seed_nr, PARSED_INPUT, DEBUG)
+    return s
+    
+
+def part_2(parsed_input, debug=False):
     '''Get the solution for Part 2'''
-    return 0
+    global PARSED_INPUT
+    global DEBUG
+    PARSED_INPUT = parsed_input
+    DEBUG = debug
+    # Convert the seeds part in parsed input
+    lst = []
+    num, interval = 0, 0
+    for idx, item in enumerate(parsed_input['seeds']):
+        if idx % 2 == 0:
+            num = item
+        elif idx % 2 == 1:
+            interval = item
+            lst.append((num, interval))
+            num = 0
+            interval = 0
+    if debug:
+        print('The seeds input for Part 2 is:', lst)
+        print('')
+
+    parsed_input['seeds'] = lst
+    if debug:
+        print('The parsed input for Part 2 is:')
+        pprint(parsed_input)
+        print('')
+
+    # Run trace_path on generated seed range
+    min_locations = []
+    # for item in parsed_input['seeds']:
+    #     for seed in range_generator(item[0], item[1]):
+    #         print(f'Processing seed #{seed}')
+    #         locations.append(trace_path(seed, parsed_input, debug))
+    with Pool(processes=4) as pool:
+        for item in parsed_input['seeds']:
+            print(f'Processing seed range {item}')
+            print('')
+            temp_loc = []
+            temp_loc.append([x for x in pool.imap(worker, range_generator(item[0], item[1]), 1000)])
+            min_locations.append(min([item for row in temp_loc for item in row]))
+            if debug:
+                print(f'The locations for seed range {item} are:')
+                pprint(temp_loc)
+                print('')
+
+    if debug:
+        print('The minimum locations for all seed ranges in Part 2 are:')
+        pprint(min_locations)
+        print('')
+
+    return min(min_locations) 
 
 
 def main():
@@ -166,11 +308,11 @@ def main():
         sys.exit(1)
 
     # Parse the input file
-    parse_input(filename, debug)
+    parsed_input = parse_input(filename, debug)
 
     # Get the solutions and print them out
-    part_1_solution = part_1()
-    part_2_solution = part_2()
+    part_1_solution = part_1(parsed_input, debug)
+    part_2_solution = part_2(parsed_input, debug)
     print('')
     print('The solution for Part 1 is:', part_1_solution)
     print('')
