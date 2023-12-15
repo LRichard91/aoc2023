@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from math import lcm
 from pprint import pprint
 import sys
 
@@ -36,7 +37,30 @@ def parse_input(filename, debug=False):
 
 def path_generator(directions):
     '''Generate the "infinite" path'''
-    yield directions
+    while True:
+        yield directions
+
+
+def traverse_path(input, starting_node, part, debug=False):
+    steps = 0
+    node = starting_node
+    for dir in path_generator(input['directions']):
+        for d in dir:
+            if d == 'L':
+                steps += 1
+                node = input[node][0]
+            else:
+                steps += 1
+                node = input[node][1]
+            if debug:
+                print('Step:', steps, '- New location:', node)
+            if part == 1:
+                if node == 'ZZZ':
+                    return steps
+            elif part == 2:
+                if node[2:] == 'Z':
+                    return steps
+
 
 def part_1(input, debug=False):
     '''Solve Part 1'''
@@ -48,18 +72,7 @@ def part_1(input, debug=False):
         print('')
 
     loc = 'AAA'
-    steps = 0
-    while loc != 'ZZZ':
-        for dir in path_generator(input['directions']):
-            for d in dir:
-                if d == 'L':
-                    steps += 1
-                    loc = input[loc][0]
-                else:
-                    steps += 1
-                    loc = input[loc][1]
-                if debug:
-                    print('Step', steps, '- New location:', loc)
+    steps = traverse_path(input, loc, 1, debug)
 
     return steps
 
@@ -83,34 +96,15 @@ def part_2(input, debug=False):
         pprint(starting_nodes)
         print('')
 
-    location = starting_nodes.copy()
-    end_reached = False
-    steps = 0
+    steps = []
+    
+    while starting_nodes:
+        node = starting_nodes.pop()
+        steps.append(traverse_path(input, node, 2, debug))
 
-    while not end_reached:
-        for dir in path_generator(input['directions']):
-            end_node_found = [False for _ in range(len(location))]
-            for d in dir:
-                end_node_found = [False for _ in range(len(location))]
-                if d == 'L':
-                    steps += 1
-                    for i, l in enumerate(location):
-                        location[i] = input[l][0]
-                if d == 'R':
-                    steps += 1
-                    for i, l in enumerate(location):
-                        location[i] = input[l][1]
-                for i, l in enumerate(location):
-                    if l[2:] == 'Z':
-                        end_node_found[i] = True
-                if end_node_found.count(True) == len(location):
-                    end_reached = True
+    solution = lcm(*steps)
 
-                if debug:
-                    print('New nodes:', location)
-                    print('End nodes:', end_node_found)
-                    print('End reached:', end_reached)
-    return steps
+    return solution
 
 
 def main():
