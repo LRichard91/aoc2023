@@ -87,7 +87,7 @@ def main():
     if args.part2:
         solution_2 = part_2(parsed_input, args.debug)
         print('')
-        print('The solution for Part 1 is', solution_2)
+        print('The solution for Part 2 is', solution_2)
         print('')
         
     sys.exit(0)
