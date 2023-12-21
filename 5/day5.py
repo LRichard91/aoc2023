@@ -231,6 +231,8 @@ def part_1(parsed_input, debug=False):
 
 def worker(seed_nr):
     '''Worker function for multiprocessing'''
+    if seed_nr % 100000 == 0:
+        print('Processing seed nr.', seed_nr)
     s = trace_path(seed_nr, PARSED_INPUT, DEBUG)
     return s
     
@@ -239,8 +241,6 @@ def part_2(parsed_input, debug=False):
     '''Get the solution for Part 2'''
     global PARSED_INPUT
     global DEBUG
-    PARSED_INPUT = parsed_input
-    DEBUG = debug
     # Convert the seeds part in parsed input
     lst = []
     num, interval = 0, 0
@@ -262,13 +262,15 @@ def part_2(parsed_input, debug=False):
         pprint(parsed_input)
         print('')
 
+    PARSED_INPUT = parsed_input
+    DEBUG = debug
     # Run trace_path on generated seed range
     min_locations = []
     # for item in parsed_input['seeds']:
     #     for seed in range_generator(item[0], item[1]):
     #         print(f'Processing seed #{seed}')
     #         locations.append(trace_path(seed, parsed_input, debug))
-    with Pool(processes=4) as pool:
+    with Pool(processes=8) as pool:
         for item in parsed_input['seeds']:
             print(f'Processing seed range {item}')
             print('')
