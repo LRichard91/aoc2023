@@ -292,9 +292,42 @@ def map_ranges(parsed_input, debug=False):
     return 0
 
 
-def part_2(mapped_ranges, debug=False):
+def get_seeds(start, interval):
+    n = start
+    while n < start + interval:
+        yield n
+        n += 1
+
+
+def part_2(parsed_input, debug=False):
     '''Get the solution for Part 2'''
-    return 0
+    locations = []
+    min_locations = []
+    seeds = []
+    start, interval = 0, 0
+    for i, item in enumerate(parsed_input['seeds']):
+        if i % 2 == 0:
+            start = parsed_input['seeds'][i]
+        elif i % 2 == 1:
+            interval = parsed_input['seeds'][i]
+            seeds.append((start, interval))
+
+    for item in seeds:
+        for seed in get_seeds(*item):
+            if debug:
+                print('Processing seed nr.', seed)
+            elif not debug and seed % 100000 == 0:
+                print('Processing seed nr.', seed)
+            locations.append(trace_path(seed, parsed_input, debug))
+        min_locations.append(min(locations))
+        locations = []
+
+    if debug:
+        print('The locations for Part 2 are:')
+        pprint(min_locations)
+        print('')
+
+    return min(min_locations)
 
 
 def main():
@@ -332,7 +365,7 @@ def main():
     mapped_ranges = map_ranges(parsed_input, debug)
 
     # Get the solution for Part 2
-    part_2_solution = part_2(mapped_ranges, debug)
+    part_2_solution = part_2(parsed_input, debug)
 
     # Print out solutions
     print('')

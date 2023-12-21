@@ -6,15 +6,13 @@ import sys
 
 
 IN_PATH = []
-BOUNDARY_VERTICAL = []
-PARITY = []
+INSIDE = []
 
 def parse_input(filename, debug=False):
     '''Parse the input file'''
     parsed_input = []
     global IN_PATH
-    global BOUNDARY_VERTICAL
-    global PARITY
+    global INSIDE
     with open(filename, 'r') as f:
         input = f.read().splitlines()
         if debug:
@@ -25,8 +23,7 @@ def parse_input(filename, debug=False):
     for line in input:
         parsed_input.append([list(char) for char in line])
         IN_PATH.append([False for _ in line])
-        BOUNDARY_VERTICAL.append([False for _ in line])
-        PARITY.append([0 for _ in line])
+        INSIDE.append([False for _ in line])
 
     return parsed_input
 
@@ -171,34 +168,47 @@ def part_1(input, debug=False):
     return round(steps / 2)
 
 
-def check_pipes(input):
-    '''Check if boundary is normal pipe not elbow'''
-    global BOUNDARY_VERTICAL
+def ray_casting(input, debug=False):
+    '''Check if a tile is inside or outside of path'''
+    # Almost worked...
+    global IN_PATH
+    global INSIDE
     for i, row in enumerate(input):
-        for j, tile in enumerate(row):
-            if tile in [['|'], ['7'], ['F'], ['J'], ['L']] and IN_PATH[i][j]:
-                BOUNDARY_VERTICAL[i][j] = True
-
-
-def check_parity(input):
-    '''Get the tiles inside the path'''
-    inside = 0
-    global PARITY
-    check_pipes(input)
-    for i, row in enumerate(input):
-        boundary_crosses = 0
-        for j, tile in enumerate(row):
+        for j, _ in enumerate(row):
+            count = 0
+            switch = False
+            last = False
             if not IN_PATH[i][j]:
-                PARITY[i][j] = boundary_crosses
-            try:
-                if BOUNDARY_VERTICAL[i][j] and not IN_PATH[j][j+1]:
-                    boundary_crosses += 1
-            except IndexError: pass
-    for i, row in enumerate(input):
-        for j, tile in enumerate(row):
-            if not IN_PATH[i][j] and PARITY[i][j] % 2 == 1:
-                inside += 1
-    return inside
+                for k in range(j + 1, len(row)):
+                    if IN_PATH[i][k] and not last:
+                        count += 1
+                        last = True
+                    elif IN_PATH[i][k] and last:
+                        switch = True
+                    elif not IN_PATH[i][k] and last and switch:
+                        count += 1
+                        last = False
+                        switch = False
+                    elif not IN_PATH[i][k] and last:
+                        last = False
+            if debug:
+                print('Count for row', i, 'tile', j, ':', count)
+            if count % 2 == 1:
+                INSIDE[i][j] = True
+    inside_count = 0
+    for row in INSIDE:
+        inside_count += row.count(True)
+    return inside_count
+
+
+def ray_intersects_segment(point, segment, debug=False):
+    '''Check if ray intersects a segment'''
+    return False
+
+
+def ray_casting_2(input, debug=False):
+    '''Check if a tile is inside of path'''
+    return 0
 
 
 def part_2(input, debug=False):
@@ -209,19 +219,13 @@ def part_2(input, debug=False):
     starter = get_first_direction(input, start)
     next_node = starter[0]
     direction = starter[1]
-    steps = traverse_path(input, next_node, direction, 1, debug)
-    inside_tiles = check_parity(input)
+    traverse_path(input, next_node, direction, 1, debug)
     if debug:
         print('Nodes in path:\n')
         pprint(IN_PATH, width=150)
         print('')
-        print('Vertical boundaries:\n')
-        pprint(BOUNDARY_VERTICAL, width=150)
-        print('')
-        print('Parity:\n')
-        pprint(PARITY)
-        print('')
-    return inside_tiles
+    # inside = ray_casting(input, debug)
+    return 0
 
 
 def main():
