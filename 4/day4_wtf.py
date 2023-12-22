@@ -1,3 +1,6 @@
+### WTF solution from the Reddit solutions thread
+### Sorry, I don't know who posted it and I'll remove as soon as I get
+### around to understanding it...
 m = [len(set(l[:40].split()) & set(l[42:].split())) for l in open('input.txt')]
 c = [1] * len(m)
 for i, n in enumerate(m):
