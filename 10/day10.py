@@ -168,29 +168,49 @@ def part_1(input, debug=False):
     return round(steps / 2)
 
 
-def ray_casting(input, debug=False):
-    '''Check if a tile is inside or outside of path'''
-    # Almost worked...
-    global IN_PATH
+# def ray_casting(input, debug=False):
+#     '''Check if a tile is inside or outside of path'''
+#     # Almost worked...
+#     global IN_PATH
+#     global INSIDE
+#     for i, row in enumerate(input):
+#         for j, _ in enumerate(row):
+#             count = 0
+#             switch = False
+#             last = False
+#             if not IN_PATH[i][j]:
+#                 for k in range(j + 1, len(row)):
+#                     if IN_PATH[i][k] and not last:
+#                         count += 1
+#                         last = True
+#                     elif IN_PATH[i][k] and last:
+#                         switch = True
+#                     elif not IN_PATH[i][k] and last and switch:
+#                         count += 1
+#                         last = False
+#                         switch = False
+#                     elif not IN_PATH[i][k] and last:
+#                         last = False
+#             if debug:
+#                 print('Count for row', i, 'tile', j, ':', count)
+#             if count % 2 == 1:
+#                 INSIDE[i][j] = True
+#     inside_count = 0
+#     for row in INSIDE:
+#         inside_count += row.count(True)
+#     return inside_count
+
+
+def ray_casting_2(input, debug=False):
+    '''Check if a tile is inside of path'''
     global INSIDE
     for i, row in enumerate(input):
         for j, _ in enumerate(row):
             count = 0
-            switch = False
-            last = False
             if not IN_PATH[i][j]:
                 for k in range(j + 1, len(row)):
-                    if IN_PATH[i][k] and not last:
+                    if input[i][k] in [['|'], ['S'], ['7'], ['F'], ['J'], ['L']] and IN_PATH[i][k]:
                         count += 1
-                        last = True
-                    elif IN_PATH[i][k] and last:
-                        switch = True
-                    elif not IN_PATH[i][k] and last and switch:
-                        count += 1
-                        last = False
-                        switch = False
-                    elif not IN_PATH[i][k] and last:
-                        last = False
             if debug:
                 print('Count for row', i, 'tile', j, ':', count)
             if count % 2 == 1:
@@ -199,16 +219,6 @@ def ray_casting(input, debug=False):
     for row in INSIDE:
         inside_count += row.count(True)
     return inside_count
-
-
-def ray_intersects_segment(point, segment, debug=False):
-    '''Check if ray intersects a segment'''
-    return False
-
-
-def ray_casting_2(input, debug=False):
-    '''Check if a tile is inside of path'''
-    return 0
 
 
 def part_2(input, debug=False):
@@ -225,7 +235,8 @@ def part_2(input, debug=False):
         pprint(IN_PATH, width=150)
         print('')
     # inside = ray_casting(input, debug)
-    return 0
+    inside = ray_casting_2(input, debug)
+    return inside
 
 
 def main():
