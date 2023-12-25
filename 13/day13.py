@@ -30,111 +30,63 @@ def parse_input(filename, debug=False):
     return parsed_input
 
 
-def horizontal_reflection(input, debug=False):
-    '''Check for horizontal reflections'''
-    rows_above = []
-    for bl_nr, block in enumerate(input):
-        reflection = False
-        changed = False
-        for idx, _ in enumerate(block):
-            if idx > 0:
-                if block[idx] == block[idx - 1]:
-                    mirror_index = idx
-                    space_below = len(block) - idx
-                    if space_below < idx:
-                        rng = space_below
-                    else:
-                        rng = idx 
-                    for i in range(0, rng):
-                        if block[idx - i - 1] == block[idx + i] and not changed:
-                            reflection = True
-                        else:
-                            reflection = False
-                            changed = True
-                    if reflection:
-                        rows_above.append(mirror_index)
-                        if debug:
-                            print(
-                                'Horizontal reflection in block', bl_nr, 
-                                'between rows', mirror_index - 1, 
-                                'and', mirror_index,
-                                '\n'
-                            )
-    return rows_above
+def horizontal_ref(block, smudge=0, debug=False):
+    '''Check for reflection between rows'''
+    for idx in range(len(block)):
+        if idx == 0:
+            continue
+        if sum(smudges(before, after) for before, after in zip(reversed(block[:idx]), block[idx:])) == smudge:
+            return idx
+    return 0
 
 
-def vertical_reflection(input, debug=False):
-    '''Check for vertical reflections'''
-    # Rotate input so columns become rows
-    rotated_input = []
-    for block in input:
-        new_block = []
-        for idx in range(0, len(block[0])):
-            line = ''
-            for row in block:
-                line = line + row[idx]
-            new_block.append(line)
-        rotated_input.append(new_block)
+def score_reflection(block, smudge=0, debug=False):
+    '''Get score of the reflection on a block'''
+    # Check horizontal reflection
     if debug:
-        print('The rotated input:\n')
-        pprint(rotated_input)
-        print('')
-    # Reuse horizontal reflection code 
-    # (could call it on rotated_input but then the debug message would be 
-    # all wrong)
-    rows_above = []
-    for bl_nr, block in enumerate(rotated_input):
-        reflection = False
-        changed = False
-        for idx, _ in enumerate(block):
-            if idx > 0:
-                if block[idx] == block[idx - 1]:
-                    mirror_index = idx
-                    space_below = len(block) - idx
-                    if space_below < idx:
-                        rng = space_below
-                    else:
-                        rng = idx
-                    for i in range(0, rng):
-                        if block[idx - i - 1] == block[idx + i] and not changed:
-                            reflection = True
-                        else:
-                            reflection = False
-                            changed = True
-                    if reflection:
-                        rows_above.append(mirror_index)
-                        if debug:
-                            print(
-                                'Vertical reflection in block', bl_nr, 
-                                'between columns', mirror_index - 1, 
-                                'and', mirror_index,
-                                '\n'
-                            )
-    return rows_above
+        print('Checking for horizontal mirror')
+    if mirror := horizontal_ref(block, smudge, debug):
+        if debug:
+            print('Found at row:', mirror)
+        return 100 * mirror
+    # Transpose block and check vertical reflection
+    if debug:
+        print('Checking for vertical mirror')
+    if mirror := horizontal_ref(list(zip(*block)), smudge, debug):
+        if debug:
+            print('Found at column:', mirror)
+        return mirror
 
 
 def part_1(input, debug=False):
     '''Solve Part 1'''
-    rows_above = horizontal_reflection(input, debug)
-    rows_left = vertical_reflection(input, debug)
-    if debug:
-        print('Rows above:\n')
-        pprint(rows_above)
-        print('')
-        print('Columns left:\n')
-        pprint(rows_left)
-        print('')
-    summary = 0
-    while rows_left:
-        summary += rows_left.pop()
-    while rows_above:
-        summary += rows_above.pop() * 100
-    return summary
+    score = 0
+    for bl_nr, block in enumerate(input):
+        if debug:
+            print('Processing block nr.', bl_nr)
+        try:
+            score += score_reflection(block, debug)
+        except TypeError:
+            pass
+    return score
+
+
+def smudges(before, after):
+    '''Return the number of smudges needed for reflection'''
+    return sum(a != b for a, b in zip(before, after))
 
 
 def part_2(input, debug=False):
     '''Solve Part 2'''
-    return 0
+    score = 0
+    for bl_nr, block in enumerate(input):
+        if debug:
+            print('Processing block nr.', bl_nr)
+        try:
+            score += score_reflection(block, 1, debug)
+        except TypeError:
+            pass
+    return score
 
 
 def main():
