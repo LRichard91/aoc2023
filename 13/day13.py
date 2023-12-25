@@ -34,6 +34,7 @@ def horizontal_reflection(input, debug=False):
     '''Check for horizontal reflections'''
     rows_above = []
     for bl_nr, block in enumerate(input):
+        reflection = False
         changed = False
         for idx, _ in enumerate(block):
             if idx > 0:
@@ -43,8 +44,8 @@ def horizontal_reflection(input, debug=False):
                     if space_below < idx:
                         rng = space_below
                     else:
-                        rng = idx
-                    for i in range(1, rng):
+                        rng = idx 
+                    for i in range(0, rng):
                         if block[idx - i - 1] == block[idx + i] and not changed:
                             reflection = True
                         else:
@@ -83,6 +84,7 @@ def vertical_reflection(input, debug=False):
     # all wrong)
     rows_above = []
     for bl_nr, block in enumerate(rotated_input):
+        reflection = False
         changed = False
         for idx, _ in enumerate(block):
             if idx > 0:
@@ -93,7 +95,7 @@ def vertical_reflection(input, debug=False):
                         rng = space_below
                     else:
                         rng = idx
-                    for i in range(1, rng):
+                    for i in range(0, rng):
                         if block[idx - i - 1] == block[idx + i] and not changed:
                             reflection = True
                         else:
