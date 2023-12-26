@@ -38,8 +38,64 @@ def part_1(input, debug=False):
     return sum(hash_values)
 
 
+def hashmap(input, debug=False):
+    '''Holiday ASCII String Helper Manual Arrangement Procedure'''
+    hash_map = [[] for _ in range(256)]
+    if debug:
+        print('The length of the hashmap is:', len(hash_map), '\n')
+    for item in input:
+        if b'=' in item:
+            label = item[0:item.find(b'=')]
+            focal_length = int(item[item.find(b'=')+1:])
+            box_nr = holiday_hash(label)
+            for d in hash_map[box_nr]:
+                try:
+                    if d[label]:
+                        d[label] = focal_length
+                except KeyError:
+                    continue 
+            else:
+                hash_map[box_nr].append({label: focal_length})
+            if debug:
+                print(
+                    'ADD : ',
+                    'For item', item, 
+                    '\nthe label is:', label, 
+                    '\nthe focal length is:', focal_length, 
+                    '\nthe box nr. is:', box_nr, 
+                    '\nthe contents of the box is:', hash_map[box_nr],
+                    '\n'
+                )
+        elif b'-' in item:
+            label = item[0:item.find(b'-')]
+            box_nr = holiday_hash(label)
+            for d in hash_map[box_nr]:
+                try:
+                    if d[label]:
+                        hash_map[box_nr].remove(d)
+                        if debug:
+                            print(
+                                'REMOVE : ',
+                                'For item', item, 
+                                '\nthe label is:', label, 
+                                '\nthe box nr. is:', box_nr, 
+                                '\nthe contents of the box is:', hash_map[box_nr],
+                                '\n'
+                            )
+                except KeyError:
+                    pass
+    return hash_map
+
+
 def part_2(input, debug=False):
     '''Solve Part 2'''
+    boxes = hashmap(input, debug)
+    if debug:
+        print('The boxes:')
+        for index, item in enumerate(boxes):
+            if item:
+                print('Box nr.', index, ':', item)
+        print('')
     return 0
 
 
