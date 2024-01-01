@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 
 import argparse
-from collections import namedtuple
 from pprint import pprint
-from re import fullmatch
 import sys
-from typing import List, NamedTuple, get_args
+from typing import List, NamedTuple
 
 
 DigDirection = NamedTuple('DigDirection', [('dir', str), ('dst', int), ('color', str)])
@@ -13,7 +11,7 @@ DigDirection = NamedTuple('DigDirection', [('dir', str), ('dst', int), ('color',
 
 def parse_input(filename: str, debug: bool=False) -> List[DigDirection]:
     '''Parse the input file'''
-    parsed_input = []
+    parsed_input: List[DigDirection] = []
     with open(filename, 'r') as f:
         raw = f.read().splitlines()
     if debug:
@@ -21,9 +19,9 @@ def parse_input(filename: str, debug: bool=False) -> List[DigDirection]:
         pprint(raw)
         print('')
     for line in raw:
-        dir = line[:1]
-        dst = int(line[2:line.index('(')-1])
-        color = line[line.index('(')+1:line.index(')')]
+        dir: str = line[:1]
+        dst: int = int(line[2:line.index('(')-1])
+        color: str = line[line.index('(')+1:line.index(')')]
         if debug:
             print('For line:', line)
             print('The values:', dir, dst, color, '\n')
@@ -44,7 +42,7 @@ def makeGrid(input: List[DigDirection], debug: bool=False) -> List[str]:
     if debug:
         print('The grid size is:', len_y, 'rows and:', len_x, 'columns\n')
     grid: List[str] = []
-    for row in range(len_y):
+    for _ in range(len_y):
         grid.append('.' * len_x)
     if debug:
         print('The raw grid:\n')
@@ -53,7 +51,7 @@ def makeGrid(input: List[DigDirection], debug: bool=False) -> List[str]:
     return grid
 
 
-def digTrench(grid: List[str], last_pos: tuple[int, int], direction: DigDirection, debug: bool=False) -> tuple[List[str], tuple[int, int]]:
+def digTrench(grid: List[str], last_pos: tuple[int, int], direction: DigDirection) -> tuple[List[str], tuple[int, int]]:
     '''Dig the specified trench'''
     if direction.dir == 'R':
         line = list(grid[last_pos[0]])
@@ -86,7 +84,7 @@ def digTrench(grid: List[str], last_pos: tuple[int, int], direction: DigDirectio
     return grid, last_pos
 
 
-def calculateVolume(grid: List[str], debug: bool=False) -> int:
+def calculateVolume(grid: List[str]) -> int:
     '''Calculate the volume of the pool'''
     sum: int = 0
     for line in grid:
@@ -100,9 +98,9 @@ def part_1(input: List[DigDirection], debug: bool=False) -> int:
     len_x: int = len(grid[0])
     len_y: int = len(grid)
     last_pos = (round(len_y / 4), round(len_x / 4))
-    new_grid = digTrench(grid, last_pos, input[0], debug)
+    new_grid = digTrench(grid, last_pos, input[0])
     for idx in range(1, len(input)):
-        new_grid = digTrench(new_grid[0], new_grid[1], input[idx], debug)
+        new_grid = digTrench(new_grid[0], new_grid[1], input[idx])
     if debug:
         print('The trenches dug:\n')
         pprint(new_grid[0])
