@@ -84,6 +84,52 @@ def digTrench(grid: List[str], last_pos: tuple[int, int], direction: DigDirectio
     return grid, last_pos
 
 
+def digPool(grid: List[str], debug: bool=False) -> List[str]:
+    '''Dig the whole pool'''
+    pool: List[str] = []
+    # Convert grid from List[str] to List[List[str]]
+    altGrid: List[List[str]] = []
+    for line in grid:
+        altGrid.append(list(line))
+    if debug:
+        print('The converted grid:\n')
+        pprint(altGrid, width=200)
+        print('')
+    # Check for boundaries
+    for y, row in enumerate(altGrid):
+        for x, col in enumerate(row):
+            # If altGrid[y][x] (a.k.a. col) is '.': ray casting
+            crossings: int = 0
+            hBoundUp: bool = False
+            hBoundDown: bool = False
+            if col == '.':
+                for i in range(x + 1, len(row) - 1):
+                    if altGrid[y][i] == '#':
+                        if altGrid[y][i + 1] == '#' and altGrid[y - 1][i] == '#':
+                            hBoundDown = True
+                        elif altGrid[y][i + 1] == '#' and altGrid[y + 1][i] == '#':
+                            hBoundUp = True
+                        if hBoundDown and altGrid[y][i + 1] != '#':
+                            if altGrid[y - 1][i] != '#':
+                                hBoundDown = False
+                        if hBoundUp and altGrid[y][i + 1] != '#':
+                            if altGrid[y + 1][i] != '#':
+                                hBoundUp = False
+                        if altGrid[y][i + 1] != '#' and not (hBoundDown or hBoundUp):
+                            crossings += 1
+                if crossings % 2 == 1:
+                    altGrid[y][x] = '#'
+    # Convert back to List[str]
+    for line in altGrid:
+        pool.append(''.join(line))
+    # Return pool
+    if debug:
+        print('The whole pool:\n')
+        pprint(pool)
+        print('')
+    return pool
+
+
 def calculateVolume(grid: List[str]) -> int:
     '''Calculate the volume of the pool'''
     sum: int = 0
@@ -106,9 +152,9 @@ def part_1(input: List[DigDirection], debug: bool=False) -> int:
         pprint(new_grid[0])
         print('')
         print('')
-    # volume = calculateVolume(pool, debug)
-    # return volume
-    return 0
+    pool: List[str] = digPool(new_grid[0], debug)
+    volume = calculateVolume(pool)
+    return volume
 
 
 def part_2(input, debug=False):
