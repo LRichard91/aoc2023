@@ -25,9 +25,7 @@ class Machine:
         self.modules: list = []
         for mod in mods:
             self.connectModule(mod)
-        for mod in self.modules:
-            if mod.name != 'broadcaster':
-                mod.connectUpstream(self)
+        self.connectUpstreamModules()
 
     def connectModule(self, mod: Mod) -> None:
         if mod['type'] == 'bc':
@@ -37,26 +35,39 @@ class Machine:
         elif mod['type'] == '&':
             self.modules.append(Conjunction(mod))
 
+    def connectUpstreamModules(self):
+        for mod in self.modules:
+            if mod.name != 'broadcaster':
+                mod.connectUpstream(self)
+
     def getModules(self) -> list:
         return self.modules
 
     def pressButton(self, debug: bool=False) -> tuple[int, int]:
         '''Simulate pressing the button'''
-        queue: deque = deque(item for item in self.modules[0].sendSignal(LOW))
+        broadcasterIdx: int = 0
+        for idx, item in enumerate(self.modules):
+            if item.name == 'broadcaster':
+                broadcasterIdx = idx
+        queue: deque = deque(item for item in self.modules[broadcasterIdx].sendSignal(LOW))
         if debug:
             print('The initial queue:\n')
             pprint(queue)
             print('\n')
-        low: int = 0
+        low: int = 1
         high: int = 0
         while queue:
             sender, name, signal = queue.popleft()
-            if debug:
-                print('Sender:', sender, 'Receiver:', name, 'Signal:', signal,'\n')
             if signal == LOW:
                 low += 1
             else:
                 high += 1
+            if debug:
+                print('##########################################################')
+                print('Sender:', sender, 'Receiver:', name, 'Signal:', signal)
+                print('Nr. of LOW signals:', low, ', nr. of HIGH signals:', high)
+                print('##########################################################')
+                print('')
             for mod in self.modules:
                 if mod.name == name:
                     new_signals = mod.sendSignal(sender, signal)
@@ -66,6 +77,38 @@ class Machine:
                 pprint(queue)
                 print('\n')
         return (low, high)
+
+    def pressButtonBool(self, debug: bool=False) -> bool:
+        '''Simulate the button pressing for Part 2 -> return True if rx received Low pulse'''
+        broadcasterIdx: int = 0
+        for idx, item in enumerate(self.modules):
+            if item.name == 'broadcaster':
+                broadcasterIdx = idx
+        queue: deque = deque(item for item in self.modules[broadcasterIdx].sendSignal(LOW))
+        if debug:
+            print('The initial queue:\n')
+            pprint(queue)
+            print('\n')
+        while queue:
+            sender, name, signal = queue.popleft()
+            if debug:
+                print('##########################################################')
+                print('Sender:', sender, 'Receiver:', name, 'Signal:', signal)
+                print('##########################################################')
+                print('')
+            if name == 'rx' and signal == LOW:
+                if debug:
+                    print('END CONDITION REACHED!')
+                return True
+            for mod in self.modules:
+                if mod.name == name:
+                    new_signals = mod.sendSignal(sender, signal)
+                    queue.extend(item for item in new_signals)
+            if debug:
+                print('The queue:\n')
+                pprint(queue)
+                print('\n')
+        return False
 
 
 class Broadcaster:
@@ -96,7 +139,6 @@ class FlipFlop:
         for item in machine.getModules():
             if self.name in item.sendTo:
                 self.receiveFrom.append(item.name)
-        print(self.receiveFrom)
 
     def sendSignal(self, sender: str, signal: int) -> deque[tuple[str, str, int]]:
         if sender not in self.receiveFrom:
@@ -119,19 +161,20 @@ class Conjunction:
         self.name: str = mod['name']
         self.sendTo: list[str] = mod['send']
         self.receiveFrom: list[str] = []
-        self.state: dict[str, int] = {item: LOW for item in self.receiveFrom}
+        self.state: dict[str, int] = {}
 
     def connectUpstream(self, machine) -> None:
         for item in machine.getModules():
             if self.name in item.sendTo:
                 self.receiveFrom.append(item.name)
+        self.state = {item: LOW for item in self.receiveFrom}
 
     def sendSignal(self, sender: str, signal: int) -> deque[tuple[str, str, int]]:
         if sender not in self.receiveFrom:
             return deque()
         signals: deque[tuple[str, str, int]] = deque()
         self.state[sender] = signal
-        if all(self.state) == HIGH:
+        if all(self.state.values()) == HIGH:
             for name in self.sendTo:
                 signals.append((self.name, name, LOW))
         else:
@@ -160,11 +203,11 @@ def parse_input(filename, debug=False):
         elif item[0] == '%':
             mod['type'] = '%'
             mod['name'] = item[1:item.find('->') - 1]
-            mod['send'] = item[item.find('->') + 3:].split(',')
+            mod['send'] = item[item.find('->') + 3:].split(', ')
         elif item[0] == '&':
             mod['type'] = '&'
             mod['name'] = item[1:item.find('->') - 1]
-            mod['send'] = item[item.find('->') + 3:].split(',')
+            mod['send'] = item[item.find('->') + 3:].split(', ')
         parsed_input.append(mod)
     return parsed_input
 
@@ -182,10 +225,10 @@ def part_1(input, debug=False):
             print('Module state:', mod.state)
             print('Module sends to:', mod.sendTo)
             print('')
-    # pulses: list[tuple[int, int]] = []
-    # for _ in range(1000):
-    #     pulses.append(machine.pressButton(debug))
-    pulses = machine.pressButton(debug)
+    pulses: list[tuple[int, int]] = []
+    for _ in range(1000):
+        pulses.append(machine.pressButton(debug))
+    # pulses = machine.pressButton(debug)
     if debug:
         print('The whole machine:\n')
         pprint(machine.getModules())
@@ -196,8 +239,8 @@ def part_1(input, debug=False):
             print('Module state:', mod.state)
             print('Module sends to:', mod.sendTo)
             print('')
-    total_pulses = pulses
-    # total_pulses = sum([x[0] for x in pulses]), sum([y[1] for y in pulses])
+    # total_pulses = pulses
+    total_pulses = sum([x[0] for x in pulses]), sum([y[1] for y in pulses])
     if debug:
         print('\nThe total number of pulses:\n')
         print('LOW:', total_pulses[0], 'HIGH:', total_pulses[1])
@@ -207,7 +250,39 @@ def part_1(input, debug=False):
 
 def part_2(input, debug=False):
     '''Solve Part 2'''
-    return 0
+    machine = Machine(input)
+    if debug:
+        print('The whole machine:\n')
+        pprint(machine.getModules())
+        print('')
+        for mod in machine.getModules():
+            print('Module type:', mod.__class__)
+            print('Module name:', mod.name)
+            print('Module state:', mod.state)
+            print('Module sends to:', mod.sendTo)
+            print('')
+    button_presses: int = 0
+    rxReceivedLow: bool = False
+    while not rxReceivedLow:
+        button_presses += 1
+        rxReceivedLow = machine.pressButtonBool(debug)
+        if debug:
+            print('Nr. of button presses:', button_presses)
+            print('rxReceivedLow:', rxReceivedLow)
+            print('')
+        if button_presses % 10_000 == 0:
+            print('Progress:', button_presses, 'button presses')
+    if debug:
+        print('The whole machine:\n')
+        pprint(machine.getModules())
+        print('')
+        for mod in machine.getModules():
+            print('Module type:', mod.__class__)
+            print('Module name:', mod.name)
+            print('Module state:', mod.state)
+            print('Module sends to:', mod.sendTo)
+            print('')
+    return button_presses
 
 
 def main():
