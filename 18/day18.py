@@ -51,8 +51,9 @@ def makeGrid(input: List[DigDirection], debug: bool=False) -> List[str]:
     return grid
 
 
-def digTrench(grid: List[str], last_pos: tuple[int, int], direction: DigDirection) -> tuple[List[str], tuple[int, int]]:
+def digTrench(grid: List[str], last_pos: tuple[int, int], direction: DigDirection) -> tuple[List[str], tuple[int, int], list[tuple[int, int, str]]]:
     '''Dig the specified trench'''
+    verticalWalls: list[tuple[int, int, str]] = []
     if direction.dir == 'R':
         line = list(grid[last_pos[0]])
         for idx, _ in enumerate(line):
@@ -62,10 +63,14 @@ def digTrench(grid: List[str], last_pos: tuple[int, int], direction: DigDirectio
         last_pos = last_pos[0], last_pos[1] + direction.dst
     elif direction.dir == 'D':
         col: int = last_pos[1]
-        for row in range(last_pos[0] + 1, last_pos[0] + direction.dst + 1):
+        for row in range(last_pos[0], last_pos[0] + direction.dst + 1):
+            if row == last_pos[0]:
+                verticalWalls.append((row, col, 'D'))
+                continue
             line = list(grid[row])
             line[col] = '#'
             grid[row] = ''.join(line)
+            verticalWalls.append((row, col, 'D'))
         last_pos = last_pos[0] + direction.dst, last_pos[1]
     elif direction.dir == 'U':
         col: int = last_pos[1]
@@ -73,6 +78,7 @@ def digTrench(grid: List[str], last_pos: tuple[int, int], direction: DigDirectio
             line = list(grid[row])
             line[col] = '#'
             grid[row] = ''.join(line)
+            verticalWalls.append((row, col, 'U'))
         last_pos = last_pos[0] - direction.dst, last_pos[1]
     else:
         line = list(grid[last_pos[0]])
@@ -81,52 +87,29 @@ def digTrench(grid: List[str], last_pos: tuple[int, int], direction: DigDirectio
                 line[idx] = '#'
         grid[last_pos[0]] = ''.join(line)
         last_pos = last_pos[0], last_pos[1] - direction.dst
-    return grid, last_pos
+    return grid, last_pos, verticalWalls
 
 
-def digPool(grid: List[str], debug: bool=False) -> List[str]:
+def digPool(grid: List[str], verticalWalls: dict[tuple[int, int], str], debug: bool=False) -> List[str]:
     '''Dig the whole pool'''
     pool: List[str] = []
-    # Convert grid from List[str] to List[List[str]]
-    altGrid: List[List[str]] = []
-    for line in grid:
-        altGrid.append(list(line))
-    if debug:
-        print('The converted grid:\n')
-        pprint(altGrid, width=200)
-        print('')
-    # Check for boundaries
-    for y, row in enumerate(altGrid):
-        for x, col in enumerate(row):
-            # If altGrid[y][x] (a.k.a. col) is '.': ray casting
-            crossings: int = 0
-            hBoundUp: bool = False
-            hBoundDown: bool = False
-            if col == '.':
-                for i in range(x + 1, len(row) - 1):
-                    if altGrid[y][i] == '#':
-                        if altGrid[y][i + 1] == '#' and altGrid[y - 1][i] == '#':
-                            hBoundDown = True
-                        elif altGrid[y][i + 1] == '#' and altGrid[y + 1][i] == '#':
-                            hBoundUp = True
-                        if hBoundDown and altGrid[y][i + 1] != '#':
-                            if altGrid[y - 1][i] != '#':
-                                hBoundDown = False
-                        if hBoundUp and altGrid[y][i + 1] != '#':
-                            if altGrid[y + 1][i] != '#':
-                                hBoundUp = False
-                        if altGrid[y][i + 1] != '#' and not (hBoundDown or hBoundUp):
-                            crossings += 1
-                if crossings % 2 == 1:
-                    altGrid[y][x] = '#'
-    # Convert back to List[str]
-    for line in altGrid:
-        pool.append(''.join(line))
-    # Return pool
-    if debug:
-        print('The whole pool:\n')
-        pprint(pool)
-        print('')
+    for row, line in enumerate(grid):
+        tiles = list(line)
+        if debug:
+            print(tiles)
+            print('')
+        for col, tile in enumerate(tiles):
+            turnsPassed: int = 0
+            lastWall: str = ''
+            if tile == '.':
+                for c in range(col + 1, len(tiles)):
+                    if (row, c) in verticalWalls:
+                        if verticalWalls[(row, c)] != lastWall:
+                            turnsPassed += 1
+                        lastWall = verticalWalls[(row, c)]
+            if turnsPassed % 2 == 1:
+                tiles[col] = '#'
+        pool.append(''.join(tiles))
     return pool
 
 
@@ -144,15 +127,29 @@ def part_1(input: List[DigDirection], debug: bool=False) -> int:
     len_x: int = len(grid[0])
     len_y: int = len(grid)
     last_pos = (round(len_y / 4), round(len_x / 4))
-    new_grid = digTrench(grid, last_pos, input[0])
+    verticalWalls: list[list[tuple[int, int, str]]]
+    *new_grid, verticalWalls = digTrench(grid, last_pos, input[0])
     for idx in range(1, len(input)):
-        new_grid = digTrench(new_grid[0], new_grid[1], input[idx])
+        *new_grid, vertWall = digTrench(new_grid[0], new_grid[1], input[idx])
+        verticalWalls.append(vertWall)
     if debug:
         print('The trenches dug:\n')
         pprint(new_grid[0])
         print('')
+    verticalWallsSanitized: dict[tuple[int, int], str] = {} 
+    while verticalWalls:
+        walls = verticalWalls.pop()
+        for item in walls:
+            verticalWallsSanitized[(item[0], item[1])] = item[2]
+    if debug:
+        print('The vertical walls:\n')
+        pprint(verticalWallsSanitized)
         print('')
-    pool: List[str] = digPool(new_grid[0], debug)
+    pool: List[str] = digPool(new_grid[0], verticalWallsSanitized, debug)
+    if debug:
+        print('The complete pool:\n')
+        pprint(pool)
+        print('')
     volume = calculateVolume(pool)
     return volume
 
