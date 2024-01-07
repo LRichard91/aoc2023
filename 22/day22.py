@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+from collections import deque
 from pprint import pprint
 import sys
 from typing import Any, NamedTuple
@@ -176,6 +177,29 @@ def canDisintegrate(brickId: int, grid: dict[int, tuple[Brick, list[int]]], debu
     return True
 
 
+def chainReaction(grid: dict[int, tuple[Brick, list[int]]], debug: bool=False) -> int:
+    '''Get the number of bricks that would fall in a chain reaction'''
+    starters = deque()
+    # Get inital bricks that can cause a fall (those that are the only supports for another brick)
+    for brickId in grid:
+        if not canDisintegrate(brickId, grid, debug):
+            starters.append(brickId)
+
+    if debug:
+        print('The initial targets:', starters, '\n')
+
+    # For all starters, get all the bricks that would fall
+    fallingBricks: list[int] = []
+    while starters:
+        falling = []
+        currId = starters.popleft()
+        if debug:
+            print('If brick', currId, 'would disintegrate,', falling, 'bricks would also fall')
+        fallingBricks.append(len(falling))
+
+    return sum(fallingBricks)
+
+
 def part_1(input: Any, debug: bool=False) -> int:
     '''Solve Part 1'''
     finalState = settleBricks(input[0], input[1], debug)
@@ -197,7 +221,9 @@ def part_1(input: Any, debug: bool=False) -> int:
 
 def part_2(input: Any, debug: bool=False) -> int:
     '''Solve Part 2'''
-    return 0
+    finalState = settleBricks(input[0], input[1], debug)
+    falling: int = chainReaction(finalState, debug)
+    return falling
 
 
 def main() -> None:
