@@ -31,10 +31,16 @@ def parse_input(filename: str, debug: bool=False) -> Any:
         print('')
 
     bricks: list[Brick] = []
+    max_x: int = 0
+    max_y: int = 0
     for line in raw_input:
         start, end = line.split('~')
         x, y, z = start.split(',')
         x_, y_, z_ = end.split(',')
+        if int(x_) > max_x:
+            max_x = int(x_)
+        if int(y_) > max_y:
+            max_y = int(y_)
         bricks.append(
             Brick(
                 int(x),
@@ -55,15 +61,141 @@ def parse_input(filename: str, debug: bool=False) -> Any:
     for i in range(len(bricks)):
         parsed_input[i + 1] = bricks[i]
 
-    return parsed_input
+    return parsed_input, (max_x, max_y)
 
 
-def part_1(input, debug: bool=False) -> int:
+def settleBricks(bricks: dict[int, Brick], gridSize: tuple[int, int], debug: bool=False) -> dict[int, tuple[Brick, list[int]]]:
+    '''Get the state after all bricks have fallen'''
+    # finalState has BrickIDs, and a tuple with the Brick's coords and a list of its supports
+    finalState: dict[int, tuple[Brick, list[int]]] = {}
+    # gridHeights is for tracking current heights of each grid location and the ID of the uppermost Brick at that location
+    gridHeights: list[list[tuple[int, int]]] = []
+    for y in range(gridSize[1] + 1):
+        rowHeight: list[tuple[int, int]] = []
+        for x in range(gridSize[0] + 1):
+            rowHeight.append((0, 0))
+        gridHeights.append(rowHeight)
+
+    if debug:
+        print('The starting gridHeights and uppermost IDs:\n')
+        pprint(gridHeights)
+        print('')
+
+    for i in bricks.keys():
+        # Unpack coordinates
+        x, y, z, x_, y_, z_ = bricks[i]
+        # Set up variables for row and column indices
+        xIdx: int = -1 
+        yIdx: int = -1
+        # Set up variable for tracking maximum height in a set of positions
+        maxHeight: int = 0
+        # Set up list for the supporting bricks
+        supports: list[int] = []
+        # If y and y_ are the same, we remain in the same row
+        if y == y_:
+            yIdx = y
+        # If x and x_ are the same, we remain in the same column
+        if x == x_:
+            xIdx = x
+        # If both xIdx and yIdx are above 0, we are dealing with a cube or a vertical brick
+        if xIdx >= 0 and yIdx >= 0:
+            # Get current maximum height of the grid
+            maxHeight = gridHeights[yIdx][xIdx][0]
+            # Get the id of what's underneath
+            support = gridHeights[yIdx][xIdx][1]
+            # If the support is a brick, append it's ID to the supports list
+            if support > 0:
+                supports.append(support)
+            # Decrement z and z_
+            z, z_ = decrementZ(z, z_, maxHeight)
+            # Update the current max height of the grid and what's in that location with the height and ID of current brick
+            gridHeights[yIdx][xIdx] = (z_, i)
+        # Else, if yIdx is above 0, we have a brick that remains in the same row
+        elif yIdx >= 0:
+            heights: list[int] = [x[0] for x in gridHeights[yIdx][x:x_ + 1]]
+            maxHeight = max(heights)
+            maxIndices = findAllMaxIndices(heights, maxHeight)
+            for idx in maxIndices:
+                if gridHeights[yIdx][idx + x][1] > 0 and gridHeights[yIdx][idx + x][1] not in supports:
+                    supports.append(gridHeights[yIdx][idx + x][1])
+            z, z_ = decrementZ(z, z_, maxHeight)
+            for idx in range(x, x_ + 1):
+                gridHeights[yIdx][idx] = (z_, i)
+        # Else, if xIdx is above 0, we have a brick that remains in the same column
+        elif xIdx >= 0:
+            heights: list[int] = [x[xIdx][0] for x in gridHeights[y: y_ + 1]]
+            maxHeight = max(heights)
+            maxIndices = findAllMaxIndices(heights, maxHeight)
+            for idx in maxIndices:
+                if gridHeights[idx + y][xIdx][1] > 0 and gridHeights[idx + y][xIdx][1] not in supports:
+                    supports.append(gridHeights[idx + y][xIdx][1])
+            z, z_ = decrementZ(z, z_, maxHeight)
+            for idx in range(y, y_ + 1):
+                gridHeights[idx][xIdx] = (z_, i)
+        # Else, we have done something really-really wrong...
+        else:
+            print('OH SHIT!\n')
+
+        # Add the brick with updated coords and its supports list to the finalState dict
+        finalState[i] = Brick(x, y, z, x_, y_, z_), supports
+
+    return finalState
+
+
+def decrementZ(z: int, z_: int, maxHeight: int) -> tuple[int, int]:
+    '''Helper function for decrementing z coordinates'''
+    # Set up a Δz variable for decrementing z and z_ coordinates
+    zDelta: int = 0
+    zDelta = z - (maxHeight + 1)
+    return z - zDelta, z_ - zDelta
+
+
+def findAllMaxIndices(lst: list[int], val: int) -> list[int]:
+    '''Find all indices where we are at max height'''
+    start: int = -1
+    indices: list[int] = []
+    while True:
+        try:
+            idx = lst.index(val, start + 1)
+        except ValueError:
+            break
+        else:
+            indices.append(idx)
+            start = idx
+    return indices
+
+
+def canDisintegrate(brickId: int, grid: dict[int, tuple[Brick, list[int]]], debug: bool = False) -> bool:
+    '''Check if a brick can be disintegrated'''
+    onlySupport: bool = False
+    for brick in grid.values():
+        if brickId in brick[1] and len(brick[1]) == 1:
+            onlySupport = True
+    if onlySupport:
+        return False
+    return True
+
+
+def part_1(input: Any, debug: bool=False) -> int:
     '''Solve Part 1'''
-    return 0
+    finalState = settleBricks(input[0], input[1], debug)
+
+    if debug:
+        print('The final state:\n')
+        pprint(finalState)
+        print('')
+
+    safeBricks: int = 0
+    for brickId in finalState.keys():
+        if canDisintegrate(brickId, finalState, debug):
+            if debug:
+                print('Brick nr.', brickId, 'can be disintegrated')
+            safeBricks += 1
+
+    return safeBricks
 
 
-def part_2(input, debug: bool=False) -> int:
+def part_2(input: Any, debug: bool=False) -> int:
     '''Solve Part 2'''
     return 0
 
