@@ -1,19 +1,105 @@
 #!/usr/bin/env python
 
 import argparse
+from fractions import Fraction
 from pprint import pprint
 import sys
+from typing import NamedTuple
 
 
-def parse_input(filename, debug=False):
+Hailstone = NamedTuple(
+    'Hailstone',
+    [
+        ('x', int),
+        ('y', int),
+        ('z', int),
+        ('vx', int),
+        ('vy', int),
+        ('vz', int),
+    ]
+)
+
+
+Intersection = NamedTuple(
+    'Intersection',
+    [
+        ('Px', float),
+        ('Py', float)
+    ]
+)
+
+
+TEST_AREA = (7, 27)
+
+
+def intersectLines2D(stones: dict[int, Hailstone], testArea: tuple[int, int], debug: bool=False) -> int:
+    '''Line-line intersection for x-y coordinates'''
+    intersectionsInTestArea: int = 0
+    for currIdx, current in stones.items():
+        for nextIdx, next in stones.items():
+            parallel: bool = False
+            pastCurrent: bool = False
+            pastNext: bool = False
+            outside: bool = False
+            if nextIdx <= currIdx:
+                continue
+            dx = current.x - next.x
+            dy = current.y - next.y
+            if (denominator := current.vy * next.vx - current.vx * next.vy) == 0:
+                parallel = True
+            if not parallel:
+                numerator = next.vy * dx - next.vx * dy
+                if (tCurrent := Fraction(numerator, denominator)) <= 0:
+                    pastCurrent = True
+                numerator = current.vy * dx - current.vx * dy
+                if (tNext := Fraction(numerator, denominator)) <= 0:
+                    pastNext = True
+                if not (testArea[0] <= (current.x + tCurrent * current.vx) <= testArea[1]):
+                    outside = True
+                if not (testArea[0] <= (current.y + tCurrent * current.vy) <= testArea[1]):
+                    outside = True
+            if not parallel and not pastCurrent and not pastNext and not outside:
+                intersectionsInTestArea += 1
+            if debug:
+                if parallel:
+                    print('Stones', currIdx, 'and', nextIdx, 'have parallel paths')
+                elif pastCurrent and pastNext:
+                    print('Stones', currIdx, 'and', nextIdx, 'have crossed paths in both their pasts')
+                elif pastCurrent:
+                    print('Stone', currIdx, 'and', nextIdx, 'crossed paths in the past for', currIdx)
+                elif pastNext:
+                    print('Stone', currIdx, 'and', nextIdx, 'crossed paths in the past for', nextIdx)
+                elif outside:
+                    print('Stones', currIdx, 'and', nextIdx, 'cross paths outside the test area')
+                else:
+                    print('Stones', currIdx, 'and', nextIdx, 'cross paths at: x=', float(next.x + tNext * next.vx), 'y=', float(next.y + tNext * next.vy))
+
+    return intersectionsInTestArea
+
+
+def parse_input(filename: str, debug: bool=False) -> dict[int, Hailstone]:
     '''Parse the input file'''
-    parsed_input = []
+    parsed_input: dict[int, Hailstone] = {}
+    rawInput: list[str] = []
+    with open(filename, 'r') as f:
+        rawInput = f.read().splitlines()
+    if debug:
+        print('The raw input:\n')
+        pprint(rawInput)
+        print('')
+    for idx, line in enumerate(rawInput):
+        position: str = line[:line.index('@') - 1]
+        velocity: str = line[line.index('@') + 2:]
+        x, y, z = tuple([int(num) for num in position.split(', ')])
+        vx, vy, vz = tuple([int(num) for num in velocity.split(', ')])
+        parsed_input[idx] = Hailstone(x, y, z, vx, vy, vz)
     return parsed_input
 
 
-def part_1(input, debug=False):
+def part_1(input: dict[int, Hailstone], debug: bool=False) -> int:
     '''Solve Part 1'''
-    return 0
+    crossInside = intersectLines2D(input, TEST_AREA, debug)
+    return crossInside
 
 
 def part_2(input, debug=False):
