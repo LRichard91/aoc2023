@@ -21,7 +21,14 @@ class Graph:
     def __init__(self, nodeNum: int, debug: bool) -> None:
         '''Initialize graph with default dict (adjacency list) and the number of nodes'''
         self.adjacent = defaultdict(list)
+        self.allPaths: list[list[Node]] = []
         self.nodes = nodeNum
+        self.start: Node = Node(0, 0)
+        self.end: Node = Node(0, 0)
+        self.firstJunction: Node = Node(0, 0)
+        self.lastJunction: Node = Node(0, 0)
+        self.firstDistance: int = 0
+        self.lastDistance: int = 0
         self.debug = debug
 
     def addEdge(self, src: Node, dst: Node) -> None:
@@ -41,7 +48,7 @@ class Graph:
         '''Build the graph from a list of list of characters'''
         ### This is a DFS basically ###
         # Set up the stack, get the beginning and end nodes, push beginning node on the stack
-        stack: list[Node] = []
+        stack: list[tuple[Node, Node]] = []
         start: Node = Node(0, 0) 
         end: Node = Node(0, 0)
         for x, char in enumerate(listInput[0]):
@@ -50,7 +57,7 @@ class Graph:
         for x, char in enumerate(listInput[l := len(listInput) - 1]):
             if char == '.':
                 end = Node(x, l)
-        stack.append(start)
+        stack.append((start, start))
         # Debug message to check the above
         if self.debug:
             print('The start of the path:', start)
@@ -62,54 +69,63 @@ class Graph:
         prev: Node = Node(0, 0)
         while stack:
             if stack[0] == start:
-                curr = stack.pop()
+                current = stack.pop()
+                curr = current[1]
                 stack.extend(self._getNextNodes(curr, '.', visited, listInput))
                 continue
-            prev = curr
-            curr = stack.pop()
+            current = stack.pop()
+            curr = current[1]
+            prev = current[0]
             if listInput[curr.y][curr.x] in ['<', '>', '^', 'v'] or listInput[prev.y][prev.x] in ['<', '>', '^', 'v']:
                 self.addDirectedEdge(prev, curr)
             else:
                 self.addEdge(prev, curr)
             visited.append(curr)
             stack.extend(self._getNextNodes(curr, listInput[curr.y][curr.x], visited, listInput))
+        # Remove connection to self from the start node and connection to previous from end node
+        self.adjacent[start] = [item for item in self.adjacent[start] if item != start]
+        self.adjacent[end].clear()
+        # Store start and end as instance properties
+        self.start = start
+        self.end = end
         # Debug message to check the completed graph
         if self.debug:
+            print('')
             print('The complete graph:\n')
             self.displayAdjacencyList()
             print('')
 
-    def _getNextNodes(self, current: Node, direction: str, visited: list[Node], listInput: list[list[str]]) -> list[Node]:
+    def _getNextNodes(self, current: Node, direction: str, visited: list[Node], listInput: list[list[str]]) -> list[tuple[Node, Node]]:
         '''Private method to get all possible next nodes'''
-        nextNodes: list[Node] = []
+        nextNodes: list[tuple[Node, Node]] = []
         if direction == '^' and current.y > 0:
             if listInput[current.y - 1][current.x] in ['.', '<', '>', '^', 'v'] and Node(current.x, current.y - 1) not in visited:
-                nextNodes.append(Node(current.x, current.y - 1))
+                nextNodes.append((current, Node(current.x, current.y - 1)))
         elif direction == 'v' and current.y < len(listInput) - 1:
             if listInput[current.y + 1][current.x] in ['.', '<', '>', '^', 'v'] and Node(current.x, current.y + 1) not in visited:
-                nextNodes.append(Node(current.x, current.y + 1))
+                nextNodes.append((current, Node(current.x, current.y + 1)))
         elif direction == '<' and current.x > 0:
             if listInput[current.y][current.x - 1] in ['.', '<', '>', '^', 'v'] and Node(current.x - 1, current.y) not in visited:
-                nextNodes.append(Node(current.x - 1, current.y))
+                nextNodes.append((current, Node(current.x - 1, current.y)))
         elif direction == '>' and current.x < len(listInput[0]) - 1:
             if listInput[current.y][current.x + 1] in ['.', '<', '>', '^', 'v'] and Node(current.x + 1, current.y) not in visited:
-                nextNodes.append(Node(current.x + 1, current.y))
+                nextNodes.append((current, Node(current.x + 1, current.y)))
         else:
             if current.y > 0:
                 if listInput[current.y - 1][current.x] in ['.', '<', '>', '^', 'v'] and Node(current.x, current.y - 1) not in visited:
-                    nextNodes.append(Node(current.x, current.y - 1))
+                    nextNodes.append((current, Node(current.x, current.y - 1)))
             if current.y < len(listInput) - 1:
                 if listInput[current.y + 1][current.x] in ['.', '<', '>', '^', 'v'] and Node(current.x, current.y + 1) not in visited:
-                    nextNodes.append(Node(current.x, current.y + 1))
+                    nextNodes.append((current, Node(current.x, current.y + 1)))
             if current.x > 0:
                 if listInput[current.y][current.x - 1] in ['.', '<', '>', '^', 'v'] and Node(current.x - 1, current.y) not in visited:
-                    nextNodes.append(Node(current.x - 1, current.y))
+                    nextNodes.append((current, Node(current.x - 1, current.y)))
             if current.x < len(listInput) - 1:
                 if listInput[current.y][current.x + 1] in ['.', '<', '>', '^', 'v'] and Node(current.x + 1, current.y) not in visited:
-                    nextNodes.append(Node(current.x + 1, current.y))
+                    nextNodes.append((current, Node(current.x + 1, current.y)))
         if self.debug:
             print('For node', current, 'the next nodes:', nextNodes)
-        return nextNodes
+        return nextNodes 
 
 
 def parse_input(filename: str, debug: bool=False) -> Graph | None:
@@ -129,7 +145,7 @@ def parse_input(filename: str, debug: bool=False) -> Graph | None:
 
     if debug:
         print('The raw input transformed into [][]\n')
-        pprint(listInput, width=200)
+        pprint(listInput, width=400)
         print('')
 
     nodeNum: int = 0
@@ -148,11 +164,12 @@ def parse_input(filename: str, debug: bool=False) -> Graph | None:
     graph: Graph = Graph(nodeNum, debug)
     graph.buildGraph(listInput)
 
-    return
+    return graph
 
 
-def part_1(input, debug=False):
+def part_1(input: Graph, debug=False) -> int:
     '''Solve Part 1'''
+
     return 0
 
 
